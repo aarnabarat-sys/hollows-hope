@@ -1,14 +1,37 @@
 import {
   type ReactNode,
   createContext,
+  useCallback,
   useContext,
-  useEffect,
-  useRef,
-  useState,
+  useSyncExternalStore,
 } from "react";
-import { useActor } from "./useActor";
 
 const LS_KEY = "hh_display_name";
+
+// Simple external store for display name
+let listeners: Array<() => void> = [];
+
+function subscribe(listener: () => void) {
+  listeners = [...listeners, listener];
+  return () => {
+    listeners = listeners.filter((l) => l !== listener);
+  };
+}
+
+function getSnapshot() {
+  return localStorage.getItem(LS_KEY) || "";
+}
+
+function emitChange() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+export function setGlobalDisplayName(name: string) {
+  localStorage.setItem(LS_KEY, name);
+  emitChange();
+}
 
 interface ProfileContextValue {
   displayName: string;
@@ -21,34 +44,11 @@ const ProfileContext = createContext<ProfileContextValue>({
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { actor, isFetching } = useActor();
-  const [displayName, setDisplayNameState] = useState<string>(
-    () => localStorage.getItem(LS_KEY) || "",
-  );
-  // Track whether the user has explicitly set a name locally so we never overwrite it
-  const userHasSetName = useRef<boolean>(!!localStorage.getItem(LS_KEY));
+  const displayName = useSyncExternalStore(subscribe, getSnapshot, () => "");
 
-  // Seed from backend ONLY when there is no local value yet
-  useEffect(() => {
-    if (!actor || isFetching) return;
-    if (userHasSetName.current) return;
-    actor
-      .getCallerUserProfile()
-      .then((profile) => {
-        if (profile?.name && !userHasSetName.current) {
-          setDisplayNameState(profile.name);
-          localStorage.setItem(LS_KEY, profile.name);
-          userHasSetName.current = true;
-        }
-      })
-      .catch(() => {});
-  }, [actor, isFetching]);
-
-  function setDisplayName(name: string) {
-    userHasSetName.current = true;
-    setDisplayNameState(name);
-    localStorage.setItem(LS_KEY, name);
-  }
+  const setDisplayName = useCallback((name: string) => {
+    setGlobalDisplayName(name);
+  }, []);
 
   return (
     <ProfileContext.Provider value={{ displayName, setDisplayName }}>

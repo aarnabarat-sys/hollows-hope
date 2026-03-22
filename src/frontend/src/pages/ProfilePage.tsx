@@ -6,52 +6,53 @@ import { useActor } from "@/hooks/useActor";
 import { useProfileContext } from "@/hooks/useProfileContext";
 import { CheckCircle2, Loader2, User } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export function ProfilePage() {
   const { actor } = useActor();
-  // Use the shared context as the single source of truth for the name
   const { displayName, setDisplayName } = useProfileContext();
 
-  const [name, setName] = useState(() => displayName || "");
+  const [name, setName] = useState(displayName || "");
   const [age, setAge] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Keep local input in sync if context changes (e.g. on first load from backend)
+  useEffect(() => {
+    if (displayName && !name) {
+      setName(displayName);
+    }
+  }, [displayName, name]);
+
   async function handleSave() {
-    if (!actor) return;
     const trimmed = name.trim();
     if (!trimmed) {
       toast.error("Please enter a name.");
       return;
     }
-    setSaving(true);
-    try {
-      const ageNum = age.trim() !== "" ? Number(age) : undefined;
-      if (
-        ageNum !== undefined &&
-        (Number.isNaN(ageNum) || ageNum < 1 || ageNum > 120)
-      ) {
-        toast.error("Please enter a valid age between 1 and 120.");
-        setSaving(false);
-        return;
-      }
-      // Build profile object -- only include age if it was provided
+
+    const ageNum = age.trim() !== "" ? Number(age) : undefined;
+    if (
+      ageNum !== undefined &&
+      (Number.isNaN(ageNum) || ageNum < 1 || ageNum > 120)
+    ) {
+      toast.error("Please enter a valid age between 1 and 120.");
+      return;
+    }
+
+    // Save to context + localStorage IMMEDIATELY -- do not wait for backend
+    setDisplayName(trimmed);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    toast.success("Profile saved! Your name will now show on the dashboard.");
+
+    // Try to sync to backend in background (non-blocking)
+    if (actor) {
+      setSaving(true);
       const profile: { name: string; age?: number } = { name: trimmed };
       if (ageNum !== undefined) profile.age = ageNum;
-
-      await actor.saveCallerUserProfile(profile);
-
-      // Update shared context + localStorage immediately so Dashboard shows it right away
-      setDisplayName(trimmed);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-      toast.success("Profile saved! Your name will now show on the dashboard.");
-    } catch (err) {
-      console.error("Save profile error:", err);
-      toast.error("Failed to save profile. Please try again.");
-    } finally {
+      actor.saveCallerUserProfile(profile).catch(() => {});
       setSaving(false);
     }
   }
