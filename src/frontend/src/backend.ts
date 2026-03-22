@@ -123,6 +123,7 @@ export interface ChatMessage {
 }
 export interface UserProfile {
     name: string;
+    age?: number;
 }
 export interface http_header {
     value: string;
@@ -417,16 +418,17 @@ export class Backend implements backendInterface {
         await this.actor.setApproval(user, status);
     }
     async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
+        const candid = { name: arg0.name, age: arg0.age != null ? [BigInt(arg0.age)] as [bigint] : [] as [] };
         if (this.processError) {
             try {
-                const result = await this.actor.saveCallerUserProfile(arg0);
+                const result = await this.actor.saveCallerUserProfile(candid);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveCallerUserProfile(arg0);
+            const result = await this.actor.saveCallerUserProfile(candid);
             return result;
         }
     }
@@ -492,7 +494,9 @@ function from_candid_opt_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
-    return value.length === 0 ? null : value[0];
+    if (value.length === 0) return null;
+    const v = value[0];
+    return { name: v.name, age: v.age && v.age.length > 0 ? Number(v.age[0]) : undefined };
 }
 function from_candid_record_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;

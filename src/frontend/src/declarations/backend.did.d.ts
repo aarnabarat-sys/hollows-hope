@@ -41,7 +41,7 @@ export interface TransformationOutput {
   'body' : Uint8Array,
   'headers' : Array<http_header>,
 }
-export interface UserProfile { 'name' : string }
+export interface UserProfile { 'name' : string, 'age' : [] | [bigint] }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };

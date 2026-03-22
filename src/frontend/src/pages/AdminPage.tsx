@@ -1,42 +1,22 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import type { UserApprovalInfo } from "@/backend";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useActor } from "@/hooks/useActor";
-import type { Principal } from "@dfinity/principal";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CheckCircle,
-  Clock,
-  ShieldCheck,
-  ShieldOff,
-  XCircle,
-} from "lucide-react";
-import { toast } from "sonner";
-
-type ApprovalStatus =
-  | { approved: null }
-  | { pending: null }
-  | { rejected: null };
-
-type UserApprovalInfo = {
-  user: Principal;
-  status: ApprovalStatus;
-};
+import { useQuery } from "@tanstack/react-query";
+import { ShieldCheck, ShieldOff, Users } from "lucide-react";
 
 export function AdminPage() {
   const { actor } = useActor();
-  const queryClient = useQueryClient();
 
   const {
-    data: approvals,
+    data: users,
     isLoading,
     isError,
   } = useQuery<UserApprovalInfo[]>({
-    queryKey: ["adminApprovals"],
+    queryKey: ["registeredUsers"],
     queryFn: async () => {
       if (!actor) return [];
       try {
-        return await (actor.listApprovals() as Promise<UserApprovalInfo[]>);
+        return await actor.listApprovals();
       } catch {
         throw new Error("unauthorized");
       }
@@ -45,44 +25,6 @@ export function AdminPage() {
     refetchInterval: 10000,
     retry: false,
   });
-
-  const setApproval = useMutation({
-    mutationFn: async ({
-      user,
-      approve,
-    }: { user: Principal; approve: boolean }) => {
-      if (!actor) throw new Error("Not connected");
-      const status: ApprovalStatus = approve
-        ? { approved: null }
-        : { rejected: null };
-      return actor.setApproval(user, status);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["adminApprovals"] });
-      toast.success("User status updated");
-    },
-    onError: () => toast.error("Failed to update user status"),
-  });
-
-  const getStatusLabel = (status: ApprovalStatus) => {
-    if ("approved" in status)
-      return {
-        label: "Approved",
-        color: "default" as const,
-        icon: <CheckCircle className="h-3 w-3" />,
-      };
-    if ("rejected" in status)
-      return {
-        label: "Rejected",
-        color: "destructive" as const,
-        icon: <XCircle className="h-3 w-3" />,
-      };
-    return {
-      label: "Pending",
-      color: "secondary" as const,
-      icon: <Clock className="h-3 w-3" />,
-    };
-  };
 
   if (isError) {
     return (
@@ -120,63 +62,28 @@ export function AdminPage() {
             <Skeleton key={n} className="h-16 w-full rounded-xl" />
           ))}
         </div>
-      ) : !approvals || approvals.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Clock className="h-10 w-10 mx-auto mb-3 opacity-40" />
+      ) : !users || users.length === 0 ? (
+        <div
+          className="text-center py-12 text-muted-foreground"
+          data-ocid="admin.users.empty_state"
+        >
+          <Users className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p>No users registered yet.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {approvals.map((item) => {
-            const { label, color, icon } = getStatusLabel(item.status);
-            return (
-              <div
-                key={item.user.toString()}
-                className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 gap-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-mono text-muted-foreground truncate">
-                    {item.user.toString()}
-                  </p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <Badge
-                      variant={color}
-                      className="text-xs flex items-center gap-1"
-                    >
-                      {icon} {label}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  {!("approved" in item.status) && (
-                    <Button
-                      size="sm"
-                      className="rounded-full text-xs h-7"
-                      onClick={() =>
-                        setApproval.mutate({ user: item.user, approve: true })
-                      }
-                      disabled={setApproval.isPending}
-                    >
-                      Approve
-                    </Button>
-                  )}
-                  {!("rejected" in item.status) && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="rounded-full text-xs h-7"
-                      onClick={() =>
-                        setApproval.mutate({ user: item.user, approve: false })
-                      }
-                      disabled={setApproval.isPending}
-                    >
-                      Reject
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="space-y-3" data-ocid="admin.users.list">
+          {users.map((item, idx) => (
+            <div
+              key={item.user.toString()}
+              data-ocid={`admin.users.item.${idx + 1}`}
+              className="flex items-center bg-card border border-border rounded-xl px-4 py-3 gap-3"
+            >
+              <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+              <p className="text-xs font-mono text-muted-foreground truncate">
+                {item.user.toString()}
+              </p>
+            </div>
+          ))}
         </div>
       )}
     </main>

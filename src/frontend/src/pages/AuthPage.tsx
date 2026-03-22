@@ -1,10 +1,10 @@
+import logoImg from "@/assets/logo.jpeg";
 import { Button } from "@/components/ui/button";
 import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect } from "react";
-import logoImg from "/assets/uploads/WhatsApp-Image-2026-03-19-at-6.36.29-PM-1.jpeg";
 
 export function AuthPage() {
   const { login, identity, isLoggingIn, isInitializing } =

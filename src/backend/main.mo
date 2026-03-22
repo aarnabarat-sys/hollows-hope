@@ -15,104 +15,88 @@ actor {
   include MixinAuthorization(accessControlState);
 
   type Mood = {
-    #happy;
-    #sad;
-    #anxious;
-    #calm;
-    #angry;
-    #neutral;
-    #excited;
-    #grateful;
+    #happy; #sad; #anxious; #calm; #angry; #neutral; #excited; #grateful;
   };
 
   module Mood {
     public func compare(mood1 : Mood, mood2 : Mood) : Order.Order {
       switch (mood1, mood2) {
-        case (#happy, #happy) { #equal };
-        case (#happy, _) { #less };
-        case (_, #happy) { #greater };
-        case (#sad, #sad) { #equal };
-        case (#sad, _) { #less };
-        case (_, #sad) { #greater };
-        case (#anxious, #anxious) { #equal };
-        case (#anxious, _) { #less };
-        case (_, #anxious) { #greater };
-        case (#calm, #calm) { #equal };
-        case (#calm, _) { #less };
-        case (_, #calm) { #greater };
-        case (#angry, #angry) { #equal };
-        case (#angry, _) { #less };
-        case (_, #angry) { #greater };
-        case (#neutral, #neutral) { #equal };
-        case (#neutral, _) { #less };
-        case (_, #neutral) { #greater };
-        case (#excited, #excited) { #equal };
-        case (#excited, _) { #less };
-        case (_, #excited) { #greater };
+        case (#happy, #happy) { #equal }; case (#happy, _) { #less }; case (_, #happy) { #greater };
+        case (#sad, #sad) { #equal }; case (#sad, _) { #less }; case (_, #sad) { #greater };
+        case (#anxious, #anxious) { #equal }; case (#anxious, _) { #less }; case (_, #anxious) { #greater };
+        case (#calm, #calm) { #equal }; case (#calm, _) { #less }; case (_, #calm) { #greater };
+        case (#angry, #angry) { #equal }; case (#angry, _) { #less }; case (_, #angry) { #greater };
+        case (#neutral, #neutral) { #equal }; case (#neutral, _) { #less }; case (_, #neutral) { #greater };
+        case (#excited, #excited) { #equal }; case (#excited, _) { #less }; case (_, #excited) { #greater };
         case (#grateful, #grateful) { #equal };
       };
     };
   };
 
-  type EntryMode = {
-    #freeWrite;
-    #aiPrompted;
-  };
+  type EntryMode = { #freeWrite; #aiPrompted; };
 
   module EntryMode {
     public func compare(mode1 : EntryMode, mode2 : EntryMode) : Order.Order {
       switch (mode1, mode2) {
-        case (#freeWrite, #freeWrite) { #equal };
-        case (#freeWrite, _) { #less };
-        case (_, #freeWrite) { #greater };
-        case (#aiPrompted, #aiPrompted) { #equal };
+        case (#freeWrite, #freeWrite) { #equal }; case (#freeWrite, _) { #less };
+        case (_, #freeWrite) { #greater }; case (#aiPrompted, #aiPrompted) { #equal };
       };
     };
   };
 
   type DiaryEntry = {
-    id : Nat;
-    title : Text;
-    body : Text;
-    mood : Mood;
-    aiPrompt : ?Text;
-    createdAt : Time.Time;
-    mode : EntryMode;
+    id : Nat; title : Text; body : Text; mood : Mood;
+    aiPrompt : ?Text; createdAt : Time.Time; mode : EntryMode;
   };
 
   module DiaryEntry {
-    public func compare(entry1 : DiaryEntry, entry2 : DiaryEntry) : Order.Order {
-      if (entry1.id < entry2.id) { return #less };
-      if (entry1.id > entry2.id) { return #greater };
-      #equal;
+    public func compare(e1 : DiaryEntry, e2 : DiaryEntry) : Order.Order {
+      if (e1.id < e2.id) { #less } else if (e1.id > e2.id) { #greater } else { #equal };
     };
-
-    public func compareByTitle(entry1 : DiaryEntry, entry2 : DiaryEntry) : Order.Order {
-      Text.compare(entry1.title, entry2.title);
+    public func compareByTitle(e1 : DiaryEntry, e2 : DiaryEntry) : Order.Order {
+      Text.compare(e1.title, e2.title);
     };
   };
 
-  type MoodCount = {
-    mood : Mood;
-    count : Nat;
-  };
+  type MoodCount = { mood : Mood; count : Nat; };
+  type ChatMessage = { fromUser : Bool; message : Text; };
 
-  type ChatMessage = {
-    fromUser : Bool;
-    message : Text;
-  };
+  // Legacy type for migration from previous deployment
+  type UserProfileV1 = { name : Text };
 
-  public type UserProfile = {
-    name : Text;
-  };
+  // Current type with age support
+  public type UserProfile = { name : Text; age : ?Nat };
 
   var nextEntryId = 0;
   var responseIndex = 0;
   let diaryEntries = Map.empty<Principal, Map.Map<Nat, DiaryEntry>>();
   let chatSessions = Map.empty<Principal, List.List<ChatMessage>>();
-  let userProfiles = Map.empty<Principal, UserProfile>();
 
-  // Companion responses: gentle, direct, warm -- speaks first, ends with one question
+  // Keep old map name with old type so Motoko can deserialise existing stable state
+  let userProfiles : Map.Map<Principal, UserProfileV1> = Map.empty();
+  // New map with age field
+  let userProfilesV2 = Map.empty<Principal, UserProfile>();
+
+  let registeredUsers = Map.empty<Principal, Time.Time>();
+
+  // Migrate existing profiles to V2 on upgrade
+  system func postupgrade() {
+    for ((p, old) in userProfiles.entries()) {
+      if (not userProfilesV2.containsKey(p)) {
+        userProfilesV2.add(p, { name = old.name; age = null });
+      };
+    };
+  };
+
+  func requireAuth(caller : Principal) {
+    if (caller.isAnonymous()) {
+      Runtime.trap("Please sign in to use this feature");
+    };
+    if (not registeredUsers.containsKey(caller)) {
+      registeredUsers.add(caller, Time.now());
+    };
+  };
+
   let companionResponses : [Text] = [
     "Thank you for sharing that with me. It takes real courage to put your feelings into words, and I want you to know that whatever you're carrying right now, you don't have to hold it alone. You're allowed to feel exactly what you're feeling -- there's no rush to fix it or move past it. What's been weighing on you most today?",
     "I hear you. And I want you to know that showing up and being honest with yourself, even when it's hard, is something a lot of people never do. You're doing it right now, and that matters. I'm here with you fully. What do you think is at the heart of what you're feeling?",
@@ -137,75 +121,67 @@ actor {
     companionResponses[idx];
   };
 
-  // User Profile Management
-  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view profiles");
+  public shared ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    requireAuth(caller);
+    switch (userProfilesV2.get(caller)) {
+      case (?p) { ?p };
+      case (null) {
+        // Fallback: check legacy map
+        switch (userProfiles.get(caller)) {
+          case (?old) { ?{ name = old.name; age = null } };
+          case (null) { null };
+        };
+      };
     };
-    userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own profile");
+      Runtime.trap("Unauthorized");
     };
-    userProfiles.get(user);
+    switch (userProfilesV2.get(user)) {
+      case (?p) { ?p };
+      case (null) {
+        switch (userProfiles.get(user)) {
+          case (?old) { ?{ name = old.name; age = null } };
+          case (null) { null };
+        };
+      };
+    };
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can save profiles");
-    };
-    userProfiles.add(caller, profile);
+    requireAuth(caller);
+    userProfilesV2.add(caller, profile);
   };
 
-  // Diary Entry CRUD
   public shared ({ caller }) func createEntry(title : Text, body : Text, mood : Mood, aiPrompt : ?Text, mode : EntryMode) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can create diary entries");
-    };
-
-    let entry : DiaryEntry = {
-      id = nextEntryId;
-      title;
-      body;
-      mood;
-      aiPrompt;
-      createdAt = Time.now();
-      mode;
-    };
-
+    requireAuth(caller);
+    let entry : DiaryEntry = { id = nextEntryId; title; body; mood; aiPrompt; createdAt = Time.now(); mode; };
     switch (diaryEntries.get(caller)) {
       case (null) {
         let userEntries = Map.empty<Nat, DiaryEntry>();
         userEntries.add(nextEntryId, entry);
         diaryEntries.add(caller, userEntries);
       };
-      case (?userEntries) {
-        userEntries.add(nextEntryId, entry);
-      };
+      case (?userEntries) { userEntries.add(nextEntryId, entry); };
     };
-
     nextEntryId += 1;
     entry.id;
   };
 
   public query ({ caller }) func getEntriesForUser(user : Principal) : async [DiaryEntry] {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own diary entries");
+      Runtime.trap("Unauthorized");
     };
-
     switch (diaryEntries.get(user)) {
       case (null) { [] };
       case (?userEntries) { userEntries.values().toArray().sort() };
     };
   };
 
-  public query ({ caller }) func getEntriesForCaller() : async [DiaryEntry] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view diary entries");
-    };
-
+  public shared ({ caller }) func getEntriesForCaller() : async [DiaryEntry] {
+    requireAuth(caller);
     switch (diaryEntries.get(caller)) {
       case (null) { [] };
       case (?userEntries) { userEntries.values().toArray().sort() };
@@ -213,26 +189,14 @@ actor {
   };
 
   public shared ({ caller }) func updateEntry(entryId : Nat, newTitle : Text, newBody : Text, newMood : Mood) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can update diary entries");
-    };
-
+    requireAuth(caller);
     switch (diaryEntries.get(caller)) {
       case (null) { Runtime.trap("Entry not found") };
       case (?userEntries) {
         switch (userEntries.get(entryId)) {
           case (null) { Runtime.trap("Entry not found") };
           case (?entry) {
-            let updatedEntry : DiaryEntry = {
-              id = entry.id;
-              title = newTitle;
-              body = newBody;
-              mood = newMood;
-              aiPrompt = entry.aiPrompt;
-              createdAt = entry.createdAt;
-              mode = entry.mode;
-            };
-            userEntries.add(entryId, updatedEntry);
+            userEntries.add(entryId, { id = entry.id; title = newTitle; body = newBody; mood = newMood; aiPrompt = entry.aiPrompt; createdAt = entry.createdAt; mode = entry.mode; });
           };
         };
       };
@@ -240,54 +204,32 @@ actor {
   };
 
   public shared ({ caller }) func deleteEntry(entryId : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can delete diary entries");
-    };
-
+    requireAuth(caller);
     switch (diaryEntries.get(caller)) {
       case (null) { Runtime.trap("Entry not found") };
       case (?userEntries) {
-        if (not userEntries.containsKey(entryId)) {
-          Runtime.trap("Entry not found");
-        };
+        if (not userEntries.containsKey(entryId)) { Runtime.trap("Entry not found"); };
         userEntries.remove(entryId);
       };
     };
   };
 
-  // Weekly Mood Analysis
-  public query ({ caller }) func getWeeklyMoodAnalysis() : async [MoodCount] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view mood analysis");
-    };
-
+  public shared ({ caller }) func getWeeklyMoodAnalysis() : async [MoodCount] {
+    requireAuth(caller);
     switch (diaryEntries.get(caller)) {
       case (null) { [] };
       case (?userEntries) {
         let now = Time.now();
         let weekAgo = now - 7 * 24 * 60 * 60 * 1000000000;
-
-        let moods = userEntries.values().toArray().filter(
-          func(entry) { entry.createdAt >= weekAgo }
-        ).map(func(entry) { entry.mood });
-
+        let moods = userEntries.values().toArray().filter(func(e) { e.createdAt >= weekAgo }).map(func(e) { e.mood });
         let moodArray = [#happy, #sad, #anxious, #calm, #angry, #neutral, #excited, #grateful];
-        moodArray.map(
-          func(mood) {
-            let count = moods.filter(func(m) { Mood.compare(m, mood) == #equal }).size();
-            { mood; count };
-          }
-        );
+        moodArray.map(func(mood) { { mood; count = moods.filter(func(m) { Mood.compare(m, mood) == #equal }).size() }; });
       };
     };
   };
 
-  // Chat with AI Companion
-  public query ({ caller }) func getChatHistory() : async [ChatMessage] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view chat history");
-    };
-
+  public shared ({ caller }) func getChatHistory() : async [ChatMessage] {
+    requireAuth(caller);
     switch (chatSessions.get(caller)) {
       case (null) { [] };
       case (?messages) { messages.toArray() };
@@ -295,126 +237,57 @@ actor {
   };
 
   public shared ({ caller }) func sendMessageToCompanion(message : Text) : async Text {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can chat with companion");
-    };
-
-    let userMessage : ChatMessage = {
-      fromUser = true;
-      message;
-    };
-
+    requireAuth(caller);
+    let userMessage : ChatMessage = { fromUser = true; message; };
     let messages = switch (chatSessions.get(caller)) {
       case (null) { List.empty<ChatMessage>() };
       case (?msgs) { msgs };
     };
     messages.add(userMessage);
     chatSessions.add(caller, messages);
-
     let response = getCompanionResponse(message.size());
-
-    let aiMessage : ChatMessage = {
-      fromUser = false;
-      message = response;
-    };
-
-    messages.add(aiMessage);
+    messages.add({ fromUser = false; message = response; });
     chatSessions.add(caller, messages);
-
     response;
   };
 
   public shared ({ caller }) func endChatSession() : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can end chat sessions");
-    };
+    requireAuth(caller);
     chatSessions.remove(caller);
   };
 
-  // Mood-Based Prompt Suggestions
-  public query ({ caller }) func getPromptsForMood(mood : Mood) : async [Text] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can get mood-based prompts");
-    };
-
+  public shared ({ caller }) func getPromptsForMood(mood : Mood) : async [Text] {
+    requireAuth(caller);
     switch (mood) {
-      case (#happy) {
-        [
-          "What made you feel happy today?",
-          "How can you spread your happiness to others?",
-          "Reflect on a moment of joy from your day.",
-          "What are you grateful for right now?",
-        ];
-      };
-      case (#sad) {
-        [
-          "What's been weighing on your heart?",
-          "Who can you reach out to for comfort?",
-          "Describe a positive memory to uplift your spirits.",
-        ];
-      };
-      case (#anxious) {
-        [
-          "What's causing you to feel worried?",
-          "What strategies help you calm your mind?",
-          "Reflect on a time when things worked out better than expected.",
-        ];
-      };
-      case (#calm) {
-        [
-          "What activities help you relax?",
-          "How can you maintain your sense of calm throughout the day?",
-          "Describe a peaceful moment you experienced recently.",
-        ];
-      };
-      case (#angry) {
-        [
-          "What's causing your frustration?",
-          "How can you express your anger in a healthy way?",
-          "Reflect on ways to let go of negative emotions.",
-        ];
-      };
-      case (#neutral) {
-        [
-          "What's something you'd like to accomplish today?",
-          "How can you add positivity to your routine?",
-          "Reflect on your goals and aspirations.",
-        ];
-      };
-      case (#excited) {
-        [
-          "What are you looking forward to?",
-          "How can you prepare for upcoming opportunities?",
-        ];
-      };
-      case (#grateful) {
-        [
-          "What are you thankful for today?",
-          "How can you express gratitude to others?",
-        ];
-      };
+      case (#happy) { ["What made you feel happy today?", "How can you spread your happiness to others?", "Reflect on a moment of joy from your day.", "What are you grateful for right now?"] };
+      case (#sad) { ["What's been weighing on your heart?", "Who can you reach out to for comfort?", "Describe a positive memory to uplift your spirits."] };
+      case (#anxious) { ["What's causing you to feel worried?", "What strategies help you calm your mind?", "Reflect on a time when things worked out better than expected."] };
+      case (#calm) { ["What activities help you relax?", "How can you maintain your sense of calm throughout the day?", "Describe a peaceful moment you experienced recently."] };
+      case (#angry) { ["What's causing your frustration?", "How can you express your anger in a healthy way?", "Reflect on ways to let go of negative emotions."] };
+      case (#neutral) { ["What's something you'd like to accomplish today?", "How can you add positivity to your routine?", "Reflect on your goals and aspirations."] };
+      case (#excited) { ["What are you looking forward to?", "How can you prepare for upcoming opportunities?"] };
+      case (#grateful) { ["What are you thankful for today?", "How can you express gratitude to others?"] };
     };
   };
 
-  // Admin-only: Get all diary entries
+  public shared ({ caller }) func getRegisteredUsers() : async [Principal] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can view registered users");
+    };
+    registeredUsers.keys().toArray();
+  };
+
   public shared ({ caller }) func getAllEntries() : async [DiaryEntry] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can view all entries");
     };
-
-    diaryEntries.values().toArray().map(
-        func(userEntries) {
-          userEntries.values().toArray();
-        }
-      ).flatten();
+    diaryEntries.values().toArray().map(func(userEntries) { userEntries.values().toArray(); }).flatten();
   };
 
-  // Admin-only: Get all diary entries sorted by title
   public shared ({ caller }) func getAllEntriesSortedByTitle() : async [DiaryEntry] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can view all entries");
     };
-
     (await getAllEntries()).sort(DiaryEntry.compareByTitle);
   };
 };

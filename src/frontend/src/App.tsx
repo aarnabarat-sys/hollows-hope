@@ -9,6 +9,7 @@ import { ChatPage } from "@/pages/ChatPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DiaryFeedPage } from "@/pages/DiaryFeedPage";
 import { NewEntryPage } from "@/pages/NewEntryPage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { WeeklyAnalysisPage } from "@/pages/WeeklyAnalysisPage";
 import {
   Navigate,
@@ -106,6 +107,16 @@ const adminRoute = createRoute({
   ),
 });
 
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  component: () => (
+    <ProtectedRoute>
+      <ProfilePage />
+    </ProtectedRoute>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   authRoute,
@@ -115,6 +126,7 @@ const routeTree = rootRoute.addChildren([
   analysisRoute,
   chatRoute,
   adminRoute,
+  profileRoute,
 ]);
 
 const router = createRouter({ routeTree });

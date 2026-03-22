@@ -1,3 +1,4 @@
+import logoImg from "@/assets/logo.jpeg";
 import { UserRole } from "@/backend.d";
 import { Button } from "@/components/ui/button";
 import { useActor } from "@/hooks/useActor";
@@ -5,9 +6,8 @@ import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useTheme } from "@/hooks/useTheme";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Menu, Moon, ShieldCheck, Sun, X } from "lucide-react";
+import { Menu, Moon, ShieldCheck, Sun, User, X } from "lucide-react";
 import { useState } from "react";
-import logoImg from "/assets/uploads/WhatsApp-Image-2026-03-19-at-6.36.29-PM-1.jpeg";
 
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();
@@ -34,6 +34,7 @@ export function Navbar() {
         { to: "/diary", label: "My Diary" },
         { to: "/analysis", label: "Analysis" },
         { to: "/chat", label: "Companion" },
+        { to: "/profile", label: "Profile" },
         ...(isAdmin ? [{ to: "/admin", label: "Access" }] : []),
       ]
     : [];
@@ -69,6 +70,10 @@ export function Navbar() {
               {link.to === "/admin" ? (
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="h-3.5 w-3.5" /> {link.label}
+                </span>
+              ) : link.to === "/profile" ? (
+                <span className="flex items-center gap-1">
+                  <User className="h-3.5 w-3.5" /> {link.label}
                 </span>
               ) : (
                 link.label

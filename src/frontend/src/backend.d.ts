@@ -41,6 +41,7 @@ export interface ChatMessage {
 }
 export interface UserProfile {
     name: string;
+    age?: number;
 }
 export interface http_header {
     value: string;
@@ -97,4 +98,5 @@ export interface backendInterface {
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     updateEntry(entryId: bigint, newTitle: string, newBody: string, newMood: Mood): Promise<void>;
+    getRegisteredUsers(): Promise<Array<Principal>>;
 }
