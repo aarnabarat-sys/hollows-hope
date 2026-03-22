@@ -2,8 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useInternetIdentity } from "@/hooks/useInternetIdentity";
-import { useEntries, useUserProfile } from "@/hooks/useQueries";
+import { useProfileContext } from "@/hooks/useProfileContext";
+import { useEntries } from "@/hooks/useQueries";
 import { MOOD_CONFIG } from "@/lib/moodConfig";
 import { Link } from "@tanstack/react-router";
 import {
@@ -63,13 +63,10 @@ function formatDate(ts: bigint) {
 }
 
 export function DashboardPage() {
-  const { identity } = useInternetIdentity();
-  const { data: profile, isLoading: profileLoading } = useUserProfile();
+  const { displayName } = useProfileContext();
   const { data: entries, isLoading: entriesLoading } = useEntries();
 
-  const principal = identity?.getPrincipal().toString();
-  const shortId = principal ? `${principal.slice(0, 5)}...` : "";
-  const displayName = profile?.name || shortId || "Friend";
+  const greeting = displayName || "Friend";
   const recentEntries = (entries || []).slice(0, 3);
 
   return (
@@ -80,13 +77,9 @@ export function DashboardPage() {
         transition={{ duration: 0.45 }}
         className="mb-8"
       >
-        {profileLoading ? (
-          <Skeleton className="h-10 w-64 mb-2" />
-        ) : (
-          <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground">
-            Welcome back, <span className="text-primary">{displayName}</span> 🌿
-          </h1>
-        )}
+        <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground">
+          Welcome back, <span className="text-primary">{greeting}</span> 🌿
+        </h1>
         <p className="text-muted-foreground mt-1">
           {new Date().toLocaleDateString("en-US", {
             weekday: "long",

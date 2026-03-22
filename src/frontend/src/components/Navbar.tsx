@@ -1,4 +1,4 @@
-import logoImg from "@/assets/logo.jpeg";
+import { LOGO_DATA_URL as logoImg } from "@/assets/logoData";
 import { UserRole } from "@/backend.d";
 import { Button } from "@/components/ui/button";
 import { useActor } from "@/hooks/useActor";

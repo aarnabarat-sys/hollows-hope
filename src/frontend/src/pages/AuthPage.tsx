@@ -1,4 +1,4 @@
-import logoImg from "@/assets/logo.jpeg";
+import { LOGO_DATA_URL as logoImg } from "@/assets/logoData";
 import { Button } from "@/components/ui/button";
 import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useNavigate } from "@tanstack/react-router";

@@ -3,32 +3,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useActor } from "@/hooks/useActor";
-import { useUserProfile } from "@/hooks/useQueries";
-import { useQueryClient } from "@tanstack/react-query";
+import { useProfileContext } from "@/hooks/useProfileContext";
 import { CheckCircle2, Loader2, User } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export function ProfilePage() {
-  const { data: profile, isLoading } = useUserProfile();
   const { actor } = useActor();
-  const queryClient = useQueryClient();
+  // Use the shared context as the single source of truth for the name
+  const { displayName, setDisplayName } = useProfileContext();
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => displayName || "");
   const [age, setAge] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    if (profile) {
-      setName(profile.name || "");
-      setAge(profile.age != null ? String(profile.age) : "");
-    }
-  }, [profile]);
-
   async function handleSave() {
     if (!actor) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error("Please enter a name.");
+      return;
+    }
     setSaving(true);
     try {
       const ageNum = age.trim() !== "" ? Number(age) : undefined;
@@ -40,15 +37,19 @@ export function ProfilePage() {
         setSaving(false);
         return;
       }
-      await actor.saveCallerUserProfile({
-        name: name.trim(),
-        age: ageNum,
-      });
-      await queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      // Build profile object -- only include age if it was provided
+      const profile: { name: string; age?: number } = { name: trimmed };
+      if (ageNum !== undefined) profile.age = ageNum;
+
+      await actor.saveCallerUserProfile(profile);
+
+      // Update shared context + localStorage immediately so Dashboard shows it right away
+      setDisplayName(trimmed);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-      toast.success("Profile updated!");
-    } catch {
+      toast.success("Profile saved! Your name will now show on the dashboard.");
+    } catch (err) {
+      console.error("Save profile error:", err);
       toast.error("Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
@@ -86,65 +87,56 @@ export function ProfilePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Display Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="What should we call you?"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    maxLength={50}
-                    data-ocid="profile.input"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This name appears on your dashboard and diary.
-                  </p>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Display Name</Label>
+              <Input
+                id="name"
+                placeholder="What should we call you?"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={50}
+                data-ocid="profile.input"
+              />
+              <p className="text-xs text-muted-foreground">
+                This name appears on your dashboard greeting.
+              </p>
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="age">Age</Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    placeholder="Your age"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    min={1}
-                    max={120}
-                    data-ocid="profile.input"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Optional. Helps personalise your experience.
-                  </p>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="age">Age</Label>
+              <Input
+                id="age"
+                type="number"
+                placeholder="Your age"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                min={1}
+                max={120}
+                data-ocid="profile.input"
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional. Helps personalise your experience.
+              </p>
+            </div>
 
-                <Button
-                  onClick={handleSave}
-                  disabled={saving || name.trim() === ""}
-                  className="w-full rounded-full bg-primary text-primary-foreground hover:opacity-90"
-                  data-ocid="profile.primary_button"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-                      Saving...
-                    </>
-                  ) : saved ? (
-                    <>
-                      <CheckCircle2 className="mr-2 h-4 w-4" /> Saved!
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
-              </>
-            )}
+            <Button
+              onClick={handleSave}
+              disabled={saving || name.trim() === ""}
+              className="w-full rounded-full bg-primary text-primary-foreground hover:opacity-90"
+              data-ocid="profile.primary_button"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                </>
+              ) : saved ? (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> Saved!
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
           </CardContent>
         </Card>
       </motion.div>

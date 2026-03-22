@@ -20,6 +20,9 @@ export function useUserProfile() {
       return actor.getCallerUserProfile();
     },
     enabled: !!actor && !isFetching,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
 }
 

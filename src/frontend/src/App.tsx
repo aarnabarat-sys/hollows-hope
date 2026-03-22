@@ -2,6 +2,7 @@ import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/sonner";
+import { ProfileProvider } from "@/hooks/useProfileContext";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { AdminPage } from "@/pages/AdminPage";
 import { AuthPage } from "@/pages/AuthPage";
@@ -23,14 +24,16 @@ import {
 const rootRoute = createRootRoute({
   component: () => (
     <ThemeProvider>
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <div className="flex-1">
-          <Outlet />
+      <ProfileProvider>
+        <div className="min-h-screen flex flex-col bg-background">
+          <Navbar />
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-      <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-right" />
+      </ProfileProvider>
     </ThemeProvider>
   ),
 });
