@@ -1,0 +1,123 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Figtree:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.875rem;
+    /* Light mode: soft aqua/teal wellness palette */
+    --background: 0.965 0.022 196;
+    --foreground: 0.16 0.018 256;
+    --card: 1.0 0 0;
+    --card-foreground: 0.16 0.018 256;
+    --popover: 1.0 0 0;
+    --popover-foreground: 0.16 0.018 256;
+    --primary: 0.6 0.085 196;
+    --primary-foreground: 1.0 0 0;
+    --secondary: 0.94 0.03 196;
+    --secondary-foreground: 0.5 0.06 196;
+    --muted: 0.94 0.018 196;
+    --muted-foreground: 0.5 0.02 260;
+    --accent: 0.9 0.04 196;
+    --accent-foreground: 0.45 0.08 196;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 1.0 0 0;
+    --border: 0.88 0.03 196;
+    --input: 0.91 0.025 196;
+    --ring: 0.6 0.085 196;
+    --chart-1: 0.6 0.085 196;
+    --chart-2: 0.72 0.1 170;
+    --chart-3: 0.5 0.075 220;
+    --chart-4: 0.8 0.13 84;
+    --chart-5: 0.7 0.15 30;
+    --sidebar: 0.975 0.018 196;
+    --sidebar-foreground: 0.16 0.018 256;
+    --sidebar-primary: 0.6 0.085 196;
+    --sidebar-primary-foreground: 1.0 0 0;
+    --sidebar-accent: 0.9 0.03 196;
+    --sidebar-accent-foreground: 0.45 0.08 196;
+    --sidebar-border: 0.88 0.03 196;
+    --sidebar-ring: 0.6 0.085 196;
+  }
+
+  .dark {
+    --background: 0.175 0.042 271;
+    --foreground: 0.94 0.015 196;
+    --card: 0.21 0.045 265;
+    --card-foreground: 0.94 0.015 196;
+    --popover: 0.24 0.04 265;
+    --popover-foreground: 0.94 0.015 196;
+    --primary: 0.72 0.085 196;
+    --primary-foreground: 0.175 0.042 271;
+    --secondary: 0.26 0.04 265;
+    --secondary-foreground: 0.85 0.02 196;
+    --muted: 0.26 0.035 265;
+    --muted-foreground: 0.65 0.025 260;
+    --accent: 0.32 0.055 230;
+    --accent-foreground: 0.85 0.03 196;
+    --destructive: 0.704 0.191 22.216;
+    --destructive-foreground: 0.175 0.042 271;
+    --border: 1 0 0 / 12%;
+    --input: 1 0 0 / 15%;
+    --ring: 0.72 0.085 196;
+    --chart-1: 0.72 0.1 196;
+    --chart-2: 0.65 0.11 170;
+    --chart-3: 0.75 0.13 84;
+    --chart-4: 0.68 0.16 30;
+    --chart-5: 0.6 0.095 220;
+    --sidebar: 0.21 0.045 265;
+    --sidebar-foreground: 0.94 0.015 196;
+    --sidebar-primary: 0.72 0.085 196;
+    --sidebar-primary-foreground: 0.175 0.042 271;
+    --sidebar-accent: 0.26 0.04 265;
+    --sidebar-accent-foreground: 0.85 0.02 196;
+    --sidebar-border: 1 0 0 / 10%;
+    --sidebar-ring: 0.72 0.085 196;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .chat-bubble-user {
+    @apply bg-primary text-primary-foreground rounded-2xl rounded-br-sm px-4 py-3 max-w-[75%] ml-auto shadow-sm;
+  }
+  .chat-bubble-ai {
+    @apply bg-card text-card-foreground rounded-2xl rounded-bl-sm px-4 py-3 max-w-[75%] mr-auto shadow-sm border border-border;
+  }
+  .mood-emoji-btn {
+    @apply flex flex-col items-center gap-1 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:scale-105;
+  }
+  .mood-emoji-btn.selected {
+    @apply border-primary bg-accent;
+  }
+  .mood-emoji-btn:not(.selected) {
+    @apply border-border bg-card hover:border-primary/50;
+  }
+}
