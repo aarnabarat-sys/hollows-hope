@@ -126,7 +126,6 @@ actor {
     switch (userProfilesV2.get(caller)) {
       case (?p) { ?p };
       case (null) {
-        // Fallback: check legacy map
         switch (userProfiles.get(caller)) {
           case (?old) { ?{ name = old.name; age = null } };
           case (null) { null };
@@ -289,5 +288,24 @@ actor {
       Runtime.trap("Unauthorized: Only admins can view all entries");
     };
     (await getAllEntries()).sort(DiaryEntry.compareByTitle);
+  };
+
+  // Claim admin: the first caller to invoke this becomes admin.
+  // Directly writes to the state map to bypass the admin-only check in assignRole.
+  public shared ({ caller }) func claimAdminFirstCaller() : async Bool {
+    if (caller.isAnonymous()) {
+      Runtime.trap("Please sign in to use this feature");
+    };
+    if (AccessControl.isAdmin(accessControlState, caller)) {
+      return true;
+    };
+    // Only allow if no admin has been assigned yet
+    if (accessControlState.adminAssigned) {
+      return false;
+    };
+    // Directly set admin role, bypassing the admin-only guard in assignRole
+    accessControlState.userRoles.add(caller, #admin);
+    accessControlState.adminAssigned := true;
+    true;
   };
 };

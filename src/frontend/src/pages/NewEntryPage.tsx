@@ -2,15 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  EntryMode,
-  Mood,
-  useCreateEntry,
-  useMoodPrompts,
-} from "@/hooks/useQueries";
+import { EntryMode, Mood, useCreateEntry } from "@/hooks/useQueries";
 import { MOOD_CONFIG } from "@/lib/moodConfig";
+import { MOOD_PROMPTS } from "@/lib/moodPrompts";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, Loader2, PenLine, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
@@ -27,9 +22,7 @@ export function NewEntryPage() {
   const [body, setBody] = useState("");
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
 
-  const { data: prompts, isLoading: promptsLoading } = useMoodPrompts(
-    mode === "prompts" && selectedMood ? selectedMood : null,
-  );
+  const prompts = selectedMood ? MOOD_PROMPTS[selectedMood] : [];
   const createEntry = useCreateEntry();
 
   const handleSave = async () => {
@@ -148,46 +141,31 @@ export function NewEntryPage() {
           <Card className="border-primary/30 bg-accent/50 shadow-card">
             <CardHeader className="pb-2">
               <CardTitle className="font-display text-base text-primary">
-                AI Writing Prompts for Your Mood
+                Writing Prompts for Your Mood
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {promptsLoading ? (
-                <div className="space-y-2" data-ocid="new_entry.loading_state">
-                  {[1, 2, 3].map((n) => (
-                    <Skeleton key={n} className="h-10 w-full" />
-                  ))}
-                </div>
-              ) : (prompts || []).length === 0 ? (
-                <p
-                  className="text-sm text-muted-foreground"
-                  data-ocid="new_entry.empty_state"
+              {prompts.map((prompt, i) => (
+                <button
+                  type="button"
+                  key={prompt}
+                  className={`w-full text-left text-sm px-4 py-3 rounded-xl border-2 transition-all duration-150 ${
+                    selectedPrompt === prompt
+                      ? "border-primary bg-card text-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                  }`}
+                  onClick={() => {
+                    setSelectedPrompt(
+                      selectedPrompt === prompt ? null : prompt,
+                    );
+                    if (selectedPrompt !== prompt && !body)
+                      setBody(`${prompt}\n\n`);
+                  }}
+                  data-ocid={`new_entry.item.${i + 1}`}
                 >
-                  No prompts available.
-                </p>
-              ) : (
-                (prompts || []).map((prompt, i) => (
-                  <button
-                    type="button"
-                    key={prompt}
-                    className={`w-full text-left text-sm px-4 py-3 rounded-xl border-2 transition-all duration-150 ${
-                      selectedPrompt === prompt
-                        ? "border-primary bg-card text-foreground"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                    }`}
-                    onClick={() => {
-                      setSelectedPrompt(
-                        selectedPrompt === prompt ? null : prompt,
-                      );
-                      if (selectedPrompt !== prompt && !body)
-                        setBody(`${prompt}\n\n`);
-                    }}
-                    data-ocid={`new_entry.item.${i + 1}`}
-                  >
-                    ✨ {prompt}
-                  </button>
-                ))
-              )}
+                  ✨ {prompt}
+                </button>
+              ))}
             </CardContent>
           </Card>
         </motion.div>

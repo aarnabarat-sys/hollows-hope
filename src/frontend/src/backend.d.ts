@@ -89,6 +89,7 @@ export interface backendInterface {
     getPromptsForMood(mood: Mood): Promise<Array<string>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getWeeklyMoodAnalysis(): Promise<Array<MoodCount>>;
+    claimAdminFirstCaller(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;

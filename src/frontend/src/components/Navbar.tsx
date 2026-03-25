@@ -1,10 +1,7 @@
 import { LOGO_DATA_URL as logoImg } from "@/assets/logoData";
-import { UserRole } from "@/backend.d";
 import { Button } from "@/components/ui/button";
-import { useActor } from "@/hooks/useActor";
 import { useInternetIdentity } from "@/hooks/useInternetIdentity";
 import { useTheme } from "@/hooks/useTheme";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Menu, Moon, ShieldCheck, Sun, User, X } from "lucide-react";
 import { useState } from "react";
@@ -12,20 +9,8 @@ import { useState } from "react";
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const { identity, clear } = useInternetIdentity();
-  const { actor, isFetching } = useActor();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isLoggedIn = !!identity;
-
-  const { data: userRole } = useQuery({
-    queryKey: ["userRole"],
-    queryFn: async () => {
-      if (!actor) return null;
-      return actor.getCallerUserRole();
-    },
-    enabled: !!actor && !isFetching && isLoggedIn,
-  });
-
-  const isAdmin = userRole === UserRole.admin;
 
   const navLinks = isLoggedIn
     ? [
@@ -35,7 +20,7 @@ export function Navbar() {
         { to: "/analysis", label: "Analysis" },
         { to: "/chat", label: "Companion" },
         { to: "/profile", label: "Profile" },
-        ...(isAdmin ? [{ to: "/admin", label: "Access" }] : []),
+        { to: "/admin", label: "Admin" },
       ]
     : [];
 

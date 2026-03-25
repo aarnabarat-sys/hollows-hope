@@ -54,6 +54,7 @@ export interface http_request_result {
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'claimAdminFirstCaller' : ActorMethod<[], boolean>,
   'createEntry' : ActorMethod<
     [string, string, Mood, [] | [string], EntryMode],
     bigint

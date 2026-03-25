@@ -166,6 +166,7 @@ export interface backendInterface {
     getPromptsForMood(mood: Mood): Promise<Array<string>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getWeeklyMoodAnalysis(): Promise<Array<MoodCount>>;
+    claimAdminFirstCaller(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
@@ -175,6 +176,7 @@ export interface backendInterface {
     sendMessageToCompanion(message: string): Promise<string>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
     updateEntry(entryId: bigint, newTitle: string, newBody: string, newMood: Mood): Promise<void>;
+    getRegisteredUsers(): Promise<Array<Principal>>;
 }
 import type { DiaryEntry as _DiaryEntry, EntryMode as _EntryMode, Mood as _Mood, MoodCount as _MoodCount, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -389,6 +391,10 @@ export class Backend implements backendInterface {
             return from_candid_vec_n19(this._uploadFile, this._downloadFile, result);
         }
     }
+    async claimAdminFirstCaller(): Promise<boolean> {
+        const result = await this.actor.claimAdminFirstCaller();
+        return result;
+    }
     async isCallerAdmin(): Promise<boolean> {
         if (this.processError) {
             try {
@@ -473,6 +479,10 @@ export class Backend implements backendInterface {
             const result = await this.actor.updateEntry(arg0, arg1, arg2, to_candid_Mood_n3(this._uploadFile, this._downloadFile, arg3));
             return result;
         }
+    }
+    async getRegisteredUsers(): Promise<Array<Principal>> {
+        const result = await this.actor.getRegisteredUsers();
+        return result as Array<Principal>;
     }
 }
 function from_candid_DiaryEntry_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _DiaryEntry): DiaryEntry {

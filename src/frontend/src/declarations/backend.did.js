@@ -65,6 +65,7 @@ export const TransformationOutput = IDL.Record({
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'claimAdminFirstCaller' : IDL.Func([], [IDL.Bool], []),
   'createEntry' : IDL.Func(
       [IDL.Text, IDL.Text, Mood, IDL.Opt(IDL.Text), EntryMode],
       [IDL.Nat],
@@ -158,6 +159,7 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'claimAdminFirstCaller' : IDL.Func([], [IDL.Bool], []),
     'createEntry' : IDL.Func(
         [IDL.Text, IDL.Text, Mood, IDL.Opt(IDL.Text), EntryMode],
         [IDL.Nat],
